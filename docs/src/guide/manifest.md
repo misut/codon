@@ -8,10 +8,10 @@ renders; anything else is reserved for future extensions.
 
 ```toml
 [book]
-title       = "exon"
-authors     = ["Geunryeol Park (misut)"]
+title       = "my project"
+authors     = ["Jane Doe"]
 language    = "en"
-description = "A Cargo-inspired build tool for C++23."
+description = "A short tagline for the book."
 ```
 
 | Key | Type | Notes |

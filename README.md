@@ -1,12 +1,11 @@
 # codon
 
-A documentation-site generator for C++23 projects. Reads a `book.toml`
-manifest plus a tree of Markdown chapters from a repo's `docs/` directory
-and emits a web book readable in any browser. The rendered output is a
-phenotype application — the same stack that powers
-[phenotype](https://github.com/misut/phenotype) — not static HTML, so
-every project that already uses phenotype for its docs gets a
-Markdown-first authoring flow without changing its runtime.
+A documentation-site generator. Reads a `book.toml` manifest plus a
+tree of Markdown chapters from a repo's `docs/` directory and emits a
+web book readable in any browser. The rendered output is a phenotype
+application — built on
+[phenotype](https://github.com/misut/phenotype)'s WebGPU 2D renderer
+— not static HTML.
 
 ```
 docs/
