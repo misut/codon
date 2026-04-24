@@ -9,7 +9,7 @@ standard = 23
 platforms = [{ os = "wasi" }]
 
 [dependencies]
-"github.com/misut/phenotype" = "0.13.0"
+"github.com/misut/phenotype" = "0.14.0"
 # Pin cppx directly so exon's resolver doesn't see a transitive
 # 1.7.3 (phenotype direct) vs 1.2.0 (txn transitive) conflict.
 # Matches the version phenotype itself depends on.
