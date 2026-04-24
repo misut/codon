@@ -482,36 +482,97 @@ inline void parse_blocks(LineCursor& cur, Document& doc, std::vector<BlockId>& o
 }
 
 // Resolve `{{#include path}}` directives by inlining file contents from
-// `chapter_dir`. Directives on their own line are replaced by the contents;
-// nested includes aren't expanded (we process only the top-level document).
+// `chapter_dir`. Skips occurrences inside fenced code blocks and inline
+// code spans so docs that describe the directive literally still parse.
 inline core::Result<std::string> expand_includes(
         std::string const& content,
         std::filesystem::path const& chapter_dir) {
+    auto lines = core::split_lines(content);
     std::string out;
     out.reserve(content.size());
-    std::size_t i = 0;
-    while (i < content.size()) {
-        auto at = content.find("{{#include", i);
-        if (at == std::string::npos) {
-            out.append(content, i, std::string::npos);
-            break;
+
+    std::string fence;  // empty while not inside a fenced block
+
+    auto emit_with_inline_code_skipped =
+        [&](std::string_view line, std::size_t line_no) -> core::Result<void> {
+        std::size_t i = 0;
+        while (i < line.size()) {
+            if (line[i] == '`') {
+                std::size_t j = i;
+                while (j < line.size() && line[j] == '`') ++j;
+                auto run = j - i;
+                std::size_t close = std::string::npos;
+                for (std::size_t k = j; k + run <= line.size(); ++k) {
+                    bool match = true;
+                    for (std::size_t n = 0; n < run; ++n)
+                        if (line[k + n] != '`') { match = false; break; }
+                    if (!match) continue;
+                    if (k + run != line.size() && line[k + run] == '`') continue;
+                    close = k;
+                    break;
+                }
+                if (close != std::string::npos) {
+                    out.append(line.substr(i, close + run - i));
+                    i = close + run;
+                    continue;
+                }
+                out.append(line.substr(i, run));
+                i = j;
+                continue;
+            }
+            if (line.substr(i).starts_with("{{#include")) {
+                auto close = line.find("}}", i);
+                if (close == std::string::npos)
+                    return core::err("line {}: unterminated {{{{#include}}}}", line_no);
+                auto inner = line.substr(i + 10, close - (i + 10));
+                auto target = std::string{core::trim(inner)};
+                if (target.empty())
+                    return core::err("line {}: empty {{{{#include}}}} path", line_no);
+                auto body = core::read_file(chapter_dir / target);
+                if (!body) return std::unexpected(body.error());
+                out.append(*body);
+                i = close + 2;
+                continue;
+            }
+            out.push_back(line[i]);
+            ++i;
         }
-        out.append(content, i, at - i);
-        auto close = content.find("}}", at);
-        if (close == std::string::npos) {
-            return core::err("unterminated {{{{#include}}}} directive");
+        return {};
+    };
+
+    for (std::size_t li = 0; li < lines.size(); ++li) {
+        auto line = lines[li];
+        auto trimmed = core::trim(line);
+
+        if (!fence.empty()) {
+            out.append(line);
+            out.push_back('\n');
+            if (trimmed.size() >= fence.size()) {
+                bool all = true;
+                for (char c : trimmed) if (c != fence[0]) { all = false; break; }
+                if (all) fence.clear();
+            }
+            continue;
         }
-        auto inner = std::string_view{content}.substr(at + 10, close - (at + 10));
-        auto target = std::string{core::trim(inner)};
-        if (target.empty()) {
-            return core::err("empty {{{{#include}}}} path");
+
+        if (trimmed.size() >= 3 &&
+            (trimmed[0] == '`' || trimmed[0] == '~')) {
+            char c = trimmed[0];
+            std::size_t n = 0;
+            while (n < trimmed.size() && trimmed[n] == c) ++n;
+            if (n >= 3) {
+                fence = std::string(n, c);
+                out.append(line);
+                out.push_back('\n');
+                continue;
+            }
         }
-        auto file = chapter_dir / target;
-        auto body = core::read_file(file);
-        if (!body) return std::unexpected(body.error());
-        out.append(*body);
-        i = close + 2;
+
+        if (auto r = emit_with_inline_code_skipped(line, li + 1); !r)
+            return std::unexpected(r.error());
+        out.push_back('\n');
     }
+
     return out;
 }
 
