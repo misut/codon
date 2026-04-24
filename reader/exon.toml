@@ -1,0 +1,19 @@
+[package]
+name = "reader"
+version = "0.1.0"
+description = "Phenotype-rendered viewer for book.json (codon)."
+authors = ["Geunryeol Park (misut)"]
+license = "MIT"
+type = "bin"
+standard = 23
+platforms = [{ os = "wasi" }]
+
+[dependencies]
+"github.com/misut/phenotype" = "0.13.0"
+# Pin cppx directly so exon's resolver doesn't see a transitive
+# 1.7.3 (phenotype direct) vs 1.2.0 (txn transitive) conflict.
+# Matches the version phenotype itself depends on.
+"github.com/misut/cppx" = "1.7.3"
+
+[sync]
+cmake-in-root = false
