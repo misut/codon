@@ -1,0 +1,14 @@
+[book]
+title       = "codon"
+authors     = ["Geunryeol Park (misut)"]
+language    = "en"
+description = "A documentation-site generator for C++23 projects."
+
+[build]
+src  = "src"
+dest = "book"
+
+[output.html]
+default-theme = "auto"
+search        = true
+edit-url      = "https://github.com/misut/codon/edit/main/docs/{path}"

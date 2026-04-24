@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".claude/**"
+      - "docs/src/**.md"
+
+jobs:
+  build:
+    name: build (${{ matrix.os }}, ${{ matrix.package }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: aarch64-apple-darwin
+            package: codon
+          - os: ubuntu-24.04
+            platform: x86_64-linux-gnu
+            package: codon
+          - os: ubuntu-24.04
+            platform: x86_64-linux-gnu
+            package: reader
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve tool versions
+        id: tool-versions
+        shell: bash
+        run: |
+          sed -n 's/^"vfox:misut\/mise-intron"[[:space:]]*=[[:space:]]*"\([^"]*\)"$/intron=\1/p' mise.toml >> "$GITHUB_OUTPUT"
+          sed -n 's/^"vfox:misut\/mise-exon"[[:space:]]*=[[:space:]]*"\([^"]*\)"$/exon=\1/p' mise.toml >> "$GITHUB_OUTPUT"
+
+      - name: Cache toolchains
+        uses: actions/cache@v4
+        with:
+          path: ~/.intron/toolchains
+          key: intron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.intron.toml') }}
+
+      - name: Cache build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ matrix.package }}/.exon
+            ~/.exon/cache
+          key: build-${{ matrix.os }}-${{ matrix.package }}-${{ hashFiles('mise.toml', format('{0}/exon.toml', matrix.package), format('{0}/exon.lock', matrix.package)) }}
+          restore-keys: |
+            build-${{ matrix.os }}-${{ matrix.package }}-
+
+      - name: Install intron
+        run: |
+          gh release download v${{ steps.tool-versions.outputs.intron }} -R misut/intron -p "intron-*-${{ matrix.platform }}.tar.gz"
+          tar xzf intron-*.tar.gz && sudo mv intron /usr/local/bin/ && rm intron-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Install toolchains
+        run: |
+          intron install llvm 22.1.2
+          intron install cmake 4.3.1
+          intron install ninja 1.13.2
+          intron install wasi-sdk 32
+          intron install wasmtime 43.0.1
+          intron default wasmtime 43.0.1
+
+      - name: Install exon
+        run: |
+          gh release download v${{ steps.tool-versions.outputs.exon }} -R misut/exon -p "exon-*-${{ matrix.platform }}.tar.gz"
+          tar xzf exon-*.tar.gz && sudo mv exon /usr/local/bin/ && rm exon-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build native (codon only)
+        if: matrix.package == 'codon'
+        run: |
+          eval "$(intron env)"
+          cd ${{ matrix.package }}
+          exon build
+
+      - name: Build wasm32-wasi
+        run: |
+          eval "$(intron env)"
+          cd ${{ matrix.package }}
+          exon build --target wasm32-wasi
+
+  dogfood:
+    name: dogfood (ubuntu-24.04)
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve tool versions
+        id: tool-versions
+        shell: bash
+        run: |
+          sed -n 's/^"vfox:misut\/mise-intron"[[:space:]]*=[[:space:]]*"\([^"]*\)"$/intron=\1/p' mise.toml >> "$GITHUB_OUTPUT"
+          sed -n 's/^"vfox:misut\/mise-exon"[[:space:]]*=[[:space:]]*"\([^"]*\)"$/exon=\1/p' mise.toml >> "$GITHUB_OUTPUT"
+
+      - name: Cache toolchains
+        uses: actions/cache@v4
+        with:
+          path: ~/.intron/toolchains
+          key: intron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.intron.toml') }}
+
+      - name: Install intron
+        run: |
+          gh release download v${{ steps.tool-versions.outputs.intron }} -R misut/intron -p "intron-*-x86_64-linux-gnu.tar.gz"
+          tar xzf intron-*.tar.gz && sudo mv intron /usr/local/bin/ && rm intron-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Install toolchains
+        run: |
+          intron install llvm 22.1.2
+          intron install cmake 4.3.1
+          intron install ninja 1.13.2
+          intron install wasi-sdk 32
+          intron install wasmtime 43.0.1
+          intron default wasmtime 43.0.1
+
+      - name: Install exon
+        run: |
+          gh release download v${{ steps.tool-versions.outputs.exon }} -R misut/exon -p "exon-*-x86_64-linux-gnu.tar.gz"
+          tar xzf exon-*.tar.gz && sudo mv exon /usr/local/bin/ && rm exon-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Build codon (wasm32-wasi)
+        run: |
+          eval "$(intron env)"
+          cd codon && exon build --target wasm32-wasi
+
+      - name: Run codon on docs/
+        run: |
+          eval "$(intron env)"
+          wasmtime --dir=. codon/.exon/wasm32-wasi/debug/codon check docs
+          wasmtime --dir=. codon/.exon/wasm32-wasi/debug/codon build docs dist
+          test -f dist/book.json
+          echo "book.json emitted with $(wc -c < dist/book.json) bytes"
