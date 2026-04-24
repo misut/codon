@@ -1,9 +1,14 @@
 # codon
 
-A documentation-site generator for C++23 workspaces. Reads a manifest plus
-Markdown chapters from a repo's `docs/` directory and emits a phenotype-rendered
-web book — the same shape of site as `doc.rust-lang.org/stable/book/` but drawn
+A documentation-site generator. Reads a manifest plus Markdown chapters
+from a repo's `docs/` directory and emits a phenotype-rendered web book
+— the same shape of site as `doc.rust-lang.org/stable/book/` but drawn
 by phenotype's WebGPU backend instead of static HTML.
+
+The authoring side (Markdown + `book.toml`) is language-agnostic; the
+runtime side happens to be phenotype because that's what misut already
+uses to render web UI. Internal implementation notes about codon's own
+C++23 codebase are kept in this AGENTS file rather than the user docs.
 
 ## Packages
 

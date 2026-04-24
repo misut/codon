@@ -1,9 +1,8 @@
 # Markdown
 
 codon parses a CommonMark subset sized to the v1 reader. The parser is
-authored in C++23 (no external dependency) so it compiles under
-`-fno-exceptions` on the wasi-sdk target along with the rest of the
-generator.
+in-house with no external dependency, kept small enough to fit in the
+WASI generator binary.
 
 ## Block elements
 
@@ -33,13 +32,13 @@ today; richer styling lands alongside the location-hash runtime work.
 ## Include directive
 
 codon expands `{{#include path}}` at parse time by reading the file
-relative to the chapter. Useful for embedding `.cpp` / `.cppm` samples
-so doc prose stays in sync with real code.
+relative to the chapter. Useful for embedding source files so doc prose
+stays in sync with real code.
 
-```markdown
+````markdown
 Here is the counter example in full:
 
-```cpp
-{{#include ../../examples/counter/main.cpp}}
+```rs
+{{#include ../../examples/counter/main.rs}}
 ```
-```
+````

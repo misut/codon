@@ -2,7 +2,7 @@
 title       = "codon"
 authors     = ["Geunryeol Park (misut)"]
 language    = "en"
-description = "A documentation-site generator for C++23 projects."
+description = "A documentation-site generator that renders books with phenotype."
 
 [build]
 src  = "src"

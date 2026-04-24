@@ -1,9 +1,9 @@
 # Introduction
 
 **codon** turns a `docs/` directory of Markdown chapters into a web book
-rendered by [phenotype](https://github.com/misut/phenotype) — the same
-stack that draws misut's C++23 project sites — so adding a chapter no
-longer requires rebuilding a hand-authored C++ application.
+rendered by [phenotype](https://github.com/misut/phenotype). Authoring
+is plain Markdown plus a small TOML manifest — codon doesn't care what
+language the project being documented is written in.
 
 ```
 docs/
@@ -33,7 +33,7 @@ developers invoke the exact same artifact.
 
 ## What codon is not
 
-- A replacement for mdBook. codon targets phenotype-based C++23 projects
-  and is scoped to the features they need.
+- A drop-in mdBook replacement. The feature set is intentionally a
+  subset; some preprocessors and renderer plugins are deferred.
 - A static HTML generator. Output is a phenotype WebAssembly
   application; rendering goes through WebGPU.
