@@ -7,9 +7,9 @@
 import std;
 import phenotype;
 import reader.book;
+import reader.host;
 import reader.load;
 import reader.view;
-import reader.sample;
 
 namespace reader::app {
 
@@ -37,10 +37,11 @@ struct State {
 
     State() {
         // phenotype::run<State, Msg>(view, update) default-constructs the
-        // state internally, so the book has to be loaded here instead of
-        // via a separate factory. A follow-up PR will replace the bundled
-        // sample with bytes fetched through a phenotype host import.
-        book = reader::load(reader::sample::book_json);
+        // state internally, so the book has to be loaded in the ctor.
+        // reader::host::read_book() pulls the shell-provided book.json
+        // bytes in via the `codon` import namespace that codon.js wires
+        // up through phenotype 0.14.0's extraImports hook.
+        book = reader::load(reader::host::read_book());
         auto order = reader::flatten(book.toc);
         if (!order.empty()) active_id = order.front()->id;
     }

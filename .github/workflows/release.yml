@@ -56,6 +56,7 @@ jobs:
       - name: Stage shell
         run: |
           cp shell/index.html ./index.html
+          cp shell/codon.js   ./codon.js
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -64,4 +65,5 @@ jobs:
             codon.wasm
             reader.wasm
             index.html
+            codon.js
           generate_release_notes: true

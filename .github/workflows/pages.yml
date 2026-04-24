@@ -89,6 +89,7 @@ jobs:
           eval "$(intron env)"
           wasmtime --dir=. codon/.exon/wasm32-wasi/release/codon build docs dist
           cp shell/index.html dist/index.html
+          cp shell/codon.js   dist/codon.js
           cp reader/.exon/wasm32-wasi/release/reader dist/reader.wasm
           curl -sSfL \
             "https://raw.githubusercontent.com/misut/phenotype/${{ steps.phenotype.outputs.tag }}/shim/phenotype.js" \
